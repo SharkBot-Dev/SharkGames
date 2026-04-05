@@ -56,6 +56,23 @@ const App: React.FC = () => {
           console.error("instance_id not found");
         }
 
+        const args_res = await fetch(`/api/getargs/${newAuth.user.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (args_res.ok) {
+          const args_res_data = await args_res.json();
+          const args = args_res_data.args;
+          console.log("取得した引数:", args);
+
+          if (args.home) {
+            setActiveTab(args.home);
+          }
+        }
+
       } catch (e) {
         console.error(e);
       } finally {

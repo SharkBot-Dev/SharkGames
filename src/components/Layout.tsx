@@ -143,7 +143,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <div className="w-8" /> 
         </header>
 
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1">{children}</main>
       </div>
     </div>
   );

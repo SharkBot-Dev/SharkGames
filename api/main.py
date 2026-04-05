@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from typing import Dict
 import json
+import redis.asyncio
 
 from lib import GameStateManager
 import lib.Tier as Tier
@@ -22,6 +23,8 @@ async def lifespan(app: FastAPI):
     app.state.http_session = aiohttp.ClientSession()
     yield
     await app.state.http_session.close()
+
+redis_client = redis.asyncio.Redis()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -75,6 +78,34 @@ async def exchange_token(request_data: TokenRequest, request: Request):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="External service unavailable"
         )
+
+@app.post("/getargs/{userid}")
+async def get_args(userid: str):
+    try:
+        key = f"games:args:{userid}"
+
+        raw_args = await redis_client.get(key)
+
+        if raw_args is None:
+            raise HTTPException(status_code=404, detail="Arguments for this user not found")
+        
+        await redis_client.delete(key)
+
+        try:
+            args_data = json.loads(raw_args)
+        except json.JSONDecodeError:
+            args_data = raw_args
+
+        return {
+            "status": "success",
+            "userid": userid,
+            "args": args_data
+        }
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 async def get_user_info(oauth_token: str, session: aiohttp.ClientSession):
     if oauth_token in Tier.user_cache:
