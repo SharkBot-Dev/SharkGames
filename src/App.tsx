@@ -85,12 +85,28 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!instanceId) return;
+    let pollInterval = null;
 
     const socket = new WebSocket(
       `api/ws/${instanceId}`
     );
 
-    socket.onopen = () => console.log("WS connected");
+    const runPolling = () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: "polling",
+          clientId: "client_heartbeat",
+          payload: {
+            lastSyncTime: new Date().toISOString()
+          }
+        }));
+      }
+    };
+
+    socket.onopen = () => {
+      console.log("WS Connected");
+      pollInterval = setInterval(runPolling, 5000);
+    };
 
     socket.onclose = () => console.log("WS closed");
 

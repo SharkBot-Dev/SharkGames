@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import logging
 from contextlib import asynccontextmanager
@@ -226,6 +227,20 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                         "clientId": "server",
                         "payload": current_browser_state
                     }))
+
+            elif msg_type == "polling":
+                current_data = manager.sessions_data.get(session_id, {})
+                
+                await ws.send_text(json.dumps({
+                    "type": "polling_response",
+                    "clientId": "server",
+                    "payload": {
+                        "status": "active",
+                        "serverTime": datetime.now().isoformat(),
+                        "dataHash": hash(str(current_data)) 
+                    }
+                }))
+
             else:
                 await manager.broadcast(
                     session_id, 
