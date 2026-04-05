@@ -128,6 +128,13 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </aside>
 
+      {!isSidebarOpen && (
+        <div 
+          className="fixed left-0 top-1/2 -translate-y-1/2 w-1 h-16 bg-[#5865F2]/40 rounded-r-full md:hidden animate-pulse z-40"
+          aria-hidden="true"
+        />
+      )}
+
       <div className="flex flex-1 flex-col md:ml-64">
         <header className="sticky top-0 z-40 flex items-center justify-between border-b border-black/20 bg-[#313338]/95 backdrop-blur px-4 py-3 md:hidden">
           <div className="flex items-center gap-3">
