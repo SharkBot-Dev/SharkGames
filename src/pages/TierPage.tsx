@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
+import { domToBlob } from 'modern-screenshot';
 
 const discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
 
@@ -25,6 +26,7 @@ const rankColors: Record<TierEntry["rank"], { text: string; bg: string }> = {
 export default ({
   sessionId,
   ws,
+  userOAuthToken,
   currentUserId,
   currentUsername,
   currentUserIcon
@@ -40,6 +42,7 @@ export default ({
   const [inputRank, setInputRank] = useState<TierEntry["rank"]>("S");
   const [entries, setEntries] = useState<TierEntry[]>([]);
   const clientId = useRef(crypto.randomUUID());
+  const tierTableRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!ws) return;
@@ -73,12 +76,55 @@ export default ({
             ws.addEventListener("open", sendSyncRequest);
         }
 
+        sendSyncRequest();
+
         return () => {
             ws.removeEventListener("message", handleMessage);
             ws.removeEventListener("open", sendSyncRequest);
         };
     }, [ws]);
-  
+
+  const handleShare = async () => {
+    if (!tierTableRef.current) return;
+
+    try {
+      const blob = await domToBlob(tierTableRef.current, {
+        scale: 2,
+      });
+      if (!blob) return;
+
+      const imageFile = new File([blob], 'tier-list.png', { type: 'image/png' });
+
+      const body = new FormData();
+      body.append('file', imageFile);
+
+      const attachmentResponse = await fetch(
+        `https://discord.com/api/v10/applications/${import.meta.env.VITE_DISCORD_CLIENT_ID}/attachment`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${userOAuthToken}`, 
+          },
+          body,
+        }
+      );
+
+      if (!attachmentResponse.ok) {
+        throw new Error(`Upload failed: ${attachmentResponse.statusText}`);
+      }
+
+      const attachmentJson = await attachmentResponse.json();
+
+      const mediaUrl = attachmentJson.attachment.url;
+
+      await discordSdk.commands.openShareMomentDialog({ mediaUrl });
+
+    } catch (error) {
+      console.error("共有エラー:", error);
+      alert("画像のアップロードまたは共有に失敗しました。");
+    }
+  };
+
   const sendUpdate = (updatedEntries: TierEntry[]) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(
@@ -130,19 +176,26 @@ export default ({
   entries.forEach((entry) => groupedByRank[entry.rank].push(entry));
 
   return (
-    <div className="p-4 md:p-8 h-screen overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 bg-[#2b2d31] text-white font-sans">
       <div>
         
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             Tier表メーカー
           </h1>
-          <button
-            onClick={handleInvite}
-            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors"
-          >
-            招待リンクを共有
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleShare}
+              className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
+            >
+              共有する
+            </button>
+            <button
+              onClick={handleInvite}
+              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors"
+            >
+              招待リンクを共有
+            </button>
+          </div>
         </div>
 
         <form
@@ -175,7 +228,7 @@ export default ({
           </div>
         </form>
 
-        <div className="bg-[#2b2d31] rounded-xl overflow-hidden border border-gray-700">
+        <div className="bg-[#2b2d31] rounded-xl overflow-hidden border border-gray-700" ref={tierTableRef}>
           {rankOrder.map((rank) => (
             <div key={rank} className="flex border-b border-gray-700 last:border-0 min-h-[80px]">
               <div className={`w-16 md:w-24 flex items-center justify-center font-black text-2xl ${rankColors[rank].bg}`}>
@@ -214,6 +267,5 @@ export default ({
           ))}
         </div>
       </div>
-    </div>
   );
 };

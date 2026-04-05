@@ -1,5 +1,5 @@
 import React from "react";
-import { Menu, X, Home, Earth, Users, Star } from "lucide-react";
+import { Menu, X, Home, Earth, Users, Star, Clock, Sun } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -37,7 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({
       <aside className={`fixed inset-y-0 left-0 z-[9999] w-64 transform bg-[#2B2D31] p-4 transition-transform duration-300 ease-in-out md:translate-x-0 ${
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
-        <div className="flex h-full flex-col overflow-y-auto">
+        <div className="flex h-full flex-col overflow-y-auto scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="mb-8 flex items-center justify-between px-2">
             <span className="text-xl font-black tracking-wider text-white">SharkGames</span>
             <button className="md:hidden" onClick={() => setSidebarOpen(false)}><X size={24} /></button>
@@ -46,6 +46,8 @@ export const Layout: React.FC<LayoutProps> = ({
           <nav className="flex-1 space-y-2">
             <NavItem icon={Home} label="ホーム" id="home" />
             <NavItem icon={Earth} label="地震速報" id="quake" />
+            <NavItem icon={Clock} label="現在時刻" id="clock" />
+            <NavItem icon={Sun} label="天気予報" id="weather" />
             <NavItem icon={Star} label="ティアー表" id="tier" />
             <NavItem icon={Users} label="貢献者" id="contributors" />
           </nav>

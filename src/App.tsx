@@ -6,6 +6,8 @@ import QuakePage from "./pages/QuakePage";
 import ContributorsPage from "./pages/ContributorsPage";
 
 import TierSessionCard from "./sessions/TierSessionCard";
+import ClockPage from "./pages/ClockPage";
+import WeatherPage from "./pages/WeatherPage";
 
 const discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
 
@@ -109,6 +111,9 @@ const App: React.FC = () => {
           discordSdk={discordSdk}
         />
       )}
+
+      {activeTab === "clock" && <ClockPage />}
+      {activeTab === "weather" && <WeatherPage />}
     </Layout>
   );
 };
