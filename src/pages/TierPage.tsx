@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
-import { domToBlob } from 'modern-screenshot';
+import { snapdom } from "@zumer/snapdom";
 
 const discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
 
@@ -88,10 +88,13 @@ export default ({
     if (!tierTableRef.current) return;
 
     try {
-      const blob = await domToBlob(tierTableRef.current, {
+      const blob = await snapdom.toBlob(tierTableRef.current, {
         scale: 2,
+        backgroundColor: "#2b2d31",
+        type: "png"
       });
-      if (!blob) return;
+
+      if (!blob) throw new Error("画像の生成に失敗しました");
 
       const imageFile = new File([blob], 'tier-list.png', { type: 'image/png' });
 
@@ -120,8 +123,11 @@ export default ({
       await discordSdk.commands.openShareMomentDialog({ mediaUrl });
 
     } catch (error) {
-      console.error("共有エラー:", error);
-      alert("画像のアップロードまたは共有に失敗しました。");
+      console.error("共有エラー:", `Data: ${JSON.stringify(error)}`);
+      discordSdk.commands.captureLog({
+        level: 'error',
+        message: error as string,
+      });
     }
   };
 
@@ -187,7 +193,7 @@ export default ({
               onClick={handleShare}
               className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
             >
-              共有する
+              共有する（PC専用）
             </button>
             <button
               onClick={handleInvite}
