@@ -1,5 +1,5 @@
 import React from "react";
-import { Menu, X, Home, Earth, Users, Star, Clock, Sun } from "lucide-react";
+import { Menu, X, Home, Earth, Users, Star, Clock, Sun, WebcamIcon } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -45,15 +45,19 @@ export const Layout: React.FC<LayoutProps> = ({
 
           <nav className="flex-1 space-y-2">
             <NavItem icon={Home} label="ホーム" id="home" />
+            <hr/>
             <NavItem icon={Earth} label="地震速報" id="quake" />
             <NavItem icon={Clock} label="現在時刻" id="clock" />
             <NavItem icon={Sun} label="天気予報" id="weather" />
+            <hr/>
             <NavItem icon={Star} label="ティアー表" id="tier" />
+            <NavItem icon={WebcamIcon} label="ブラウザ" id="browser" />
+            <hr/>
             <NavItem icon={Users} label="貢献者" id="contributors" />
           </nav>
 
           <div className="mt-auto flex items-center gap-3 rounded-xl bg-[#232428] p-3">
-            <img src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`} className="h-10 w-10 rounded-full" alt="me" />
+            <img src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`} className="h-10 w-10 rounded-full" alt="me" onError={(e) => { (e.target as HTMLImageElement).src = "https://cdn.discordapp.com/embed/avatars/0.png"; }} />
             <div className="overflow-hidden">
               <p className="truncate text-sm font-bold text-white">{user.username}</p>
               <p className="text-xs text-[#B5BAC1]">Online</p>

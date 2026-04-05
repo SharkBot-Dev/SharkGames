@@ -173,6 +173,28 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                         }
                     })
                 )
+            elif msg_type == "browser_update":
+                manager.sessions_data[session_id]["browser_state"] = payload
+                
+                await manager.broadcast(
+                    session_id, 
+                    json.dumps({
+                        "type": "browser_update",
+                        "clientId": client_id,
+                        "payload": payload
+                    }),
+                    exclude_ws=ws 
+                )
+
+            elif msg_type == "browser_sync":
+                current_browser_state = manager.sessions_data[session_id].get("browser_state")
+                
+                if current_browser_state:
+                    await ws.send_text(json.dumps({
+                        "type": "browser_sync_all",
+                        "clientId": "server",
+                        "payload": current_browser_state
+                    }))
             else:
                 await manager.broadcast(
                     session_id, 

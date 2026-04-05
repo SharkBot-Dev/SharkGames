@@ -15,6 +15,7 @@ export default ({ user }: any) => {
               src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`} 
               className="-mt-12 h-24 w-24 rounded-full border-[6px] border-[#2B2D31] shadow-lg" 
               alt="avatar" 
+              onError={(e) => { (e.target as HTMLImageElement).src = "https://cdn.discordapp.com/embed/avatars/0.png"; }}
             />
             <div className="mt-4">
               <h2 className="text-2xl font-bold text-white">{user.global_name || user.username}</h2>

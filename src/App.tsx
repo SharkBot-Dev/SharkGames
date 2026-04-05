@@ -8,6 +8,7 @@ import ContributorsPage from "./pages/ContributorsPage";
 import TierSessionCard from "./sessions/TierSessionCard";
 import ClockPage from "./pages/ClockPage";
 import WeatherPage from "./pages/WeatherPage";
+import BrowserSessionCard from "./sessions/BrowserSessionCard";
 
 const discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
 
@@ -114,6 +115,15 @@ const App: React.FC = () => {
 
       {activeTab === "clock" && <ClockPage />}
       {activeTab === "weather" && <WeatherPage />}
+
+      {activeTab === "browser" && (
+        <BrowserSessionCard
+          instanceId={instanceId}
+          auth={auth}
+          ws={ws}
+          discordSdk={discordSdk}
+        />
+      )}
     </Layout>
   );
 };
