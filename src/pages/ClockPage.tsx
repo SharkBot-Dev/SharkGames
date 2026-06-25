@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default () => {
   const [time, setTime] = useState(new Date());
@@ -21,17 +21,12 @@ export default () => {
   const hourDeg = (hours % 12) * 30 + minutes * 0.5;
 
   return (
-    <div className="p-4 md:p-8 flex flex-col items-center justify-center h-screen gap-8">
-      
+    <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-4 md:p-8">
       {!isAnalog ? (
         <div className="text-center">
-          <h1 className="text-2xl mb-2 font-bold">現在時刻</h1>
-
-          <p className="text-5xl font-mono">
-            {time.toLocaleTimeString("ja-JP")}
-          </p>
-
-          <p className="text-lg mt-2">
+          <h1 className="mb-2 text-2xl font-bold">現在時刻</h1>
+          <p className="text-5xl font-mono">{time.toLocaleTimeString("ja-JP")}</p>
+          <p className="mt-2 text-lg">
             {time.toLocaleDateString("ja-JP", {
               year: "numeric",
               month: "long",
@@ -41,8 +36,8 @@ export default () => {
           </p>
         </div>
       ) : (
-        <div className="relative w-64 h-64">
-          <svg viewBox="0 0 200 200" className="w-full h-full">
+        <div className="relative h-64 w-64">
+          <svg viewBox="0 0 200 200" className="h-full w-full">
             <circle cx="100" cy="100" r="95" stroke="white" strokeWidth="4" fill="none" />
 
             {[...Array(12)].map((_, i) => {
@@ -74,7 +69,6 @@ export default () => {
               strokeWidth="5"
               transform={`rotate(${hourDeg} 100 100)`}
             />
-
             <line
               x1="100"
               y1="100"
@@ -84,7 +78,6 @@ export default () => {
               strokeWidth="3"
               transform={`rotate(${minuteDeg} 100 100)`}
             />
-
             <line
               x1="100"
               y1="100"
@@ -94,27 +87,28 @@ export default () => {
               strokeWidth="2"
               transform={`rotate(${secondDeg} 100 100)`}
             />
-
             <circle cx="100" cy="100" r="4" fill="white" />
           </svg>
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <span className="text-sm">デジタル</span>
+      <div className="flex items-center gap-3 rounded-xl bg-[#2B2D31] p-3">
+        <span className="text-sm font-bold">デジタル</span>
         <button
           onClick={() => setIsAnalog(!isAnalog)}
-          className={`w-14 h-8 flex items-center rounded-full p-1 transition ${
-            isAnalog ? "bg-blue-500" : "bg-gray-400"
+          className={`flex h-9 w-16 items-center rounded-full p-1 transition ${
+            isAnalog ? "bg-[#5865F2]" : "bg-gray-500"
           }`}
+          aria-label="時計表示を切り替える"
+          aria-pressed={isAnalog}
         >
           <div
-            className={`bg-white w-6 h-6 rounded-full shadow-md transform transition ${
-              isAnalog ? "translate-x-6" : "translate-x-0"
+            className={`h-7 w-7 rounded-full bg-white shadow-md transition ${
+              isAnalog ? "translate-x-7" : "translate-x-0"
             }`}
           />
         </button>
-        <span className="text-sm">アナログ</span>
+        <span className="text-sm font-bold">アナログ</span>
       </div>
     </div>
   );

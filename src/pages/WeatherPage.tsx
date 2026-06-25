@@ -30,18 +30,15 @@ export default () => {
 
   useEffect(() => {
     const fetchWeather = async () => {
-      const res = await fetch(
-        "/weather/bosai/forecast/data/forecast/090000.json"
-      );
+      const res = await fetch("/weather/bosai/forecast/data/forecast/090000.json");
       const data = await res.json();
 
       const parsed = parseWeather(data);
       setAllWeather(parsed);
 
-      const dates = [...new Set(parsed.map(w => w.time.slice(0, 10)))];
-
-      const todayStr = dates[0];
-      setSelectedDate(todayStr as any);
+      const dates = [...new Set(parsed.map((w) => w.time.slice(0, 10)))];
+      const todayStr = dates[0] ?? "";
+      setSelectedDate(todayStr);
 
       const ts0 = data[0].timeSeries[0];
       const ts2 = data[0].timeSeries[2];
@@ -59,57 +56,54 @@ export default () => {
 
   useEffect(() => {
     if (!selectedDate) return;
-
-    const filteredData = allWeather.filter((w) =>
-      w.time.startsWith(selectedDate)
-    );
-
-    setFiltered(filteredData);
+    setFiltered(allWeather.filter((w) => w.time.startsWith(selectedDate)));
   }, [selectedDate, allWeather]);
 
+  const dates = [...new Set(allWeather.map((w) => w.time.slice(0, 10)))];
+
   return (
-    <div className="p-4 md:p-8 flex flex-col items-center justify-center min-h-screen gap-8 text-white">
+    <div className="flex min-h-screen flex-col items-center gap-6 p-4 text-white md:p-8">
+      <div className="w-full max-w-3xl">
+        <h1 className="text-2xl font-bold">天気予報</h1>
+        <p className="mt-1 text-sm text-[#B5BAC1]">日付を選ぶと、時間ごとの予報を確認できます。</p>
+      </div>
 
       {today && (
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl text-center w-80">
-          <h2 className="text-2xl font-semibold">
-            {today.area}
-          </h2>
-          <p>{today.weather}</p>
-          <p className="text-3xl font-bold">
+        <div className="w-full max-w-sm rounded-xl bg-white/10 p-6 text-center shadow-xl backdrop-blur-md">
+          <h2 className="text-2xl font-semibold">{today.area}</h2>
+          <p className="mt-2 text-sm text-[#DBDEE1]">{today.weather}</p>
+          <p className="mt-3 text-3xl font-bold">
             {today.tempMin ?? "--"}℃ / {today.tempMax ?? "--"}℃
           </p>
         </div>
       )}
 
-      <select
-        value={selectedDate}
-        onChange={(e) => setSelectedDate(e.target.value)}
-        className="bg-white/20 backdrop-blur-md rounded-lg p-2 text-black"
-      >
-        {[...new Set(allWeather.map(w => w.time.slice(0, 10)))].map((date) => (
-          <option key={date} value={date}>
-            {date}
-          </option>
-        ))}
-      </select>
+      <label className="flex w-full max-w-sm flex-col gap-2 text-sm font-bold">
+        表示する日付
+        <select
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="min-h-12 rounded-lg bg-white/90 p-3 text-black"
+        >
+          {dates.map((date) => (
+            <option key={date} value={date}>
+              {date}
+            </option>
+          ))}
+        </select>
+      </label>
 
-      <div className="flex gap-4 overflow-x-auto w-full max-w-3xl px-2 justify-center">
-        {filtered.map((w, i) => {
+      <div className="flex w-full max-w-3xl gap-3 overflow-x-auto px-1 pb-2">
+        {filtered.map((w) => {
           const d = new Date(w.time);
 
           return (
             <div
-              key={i}
-              className="min-w-[120px] bg-white/10 backdrop-blur-md rounded-xl p-3 text-center"
+              key={w.time}
+              className="min-w-32 rounded-xl bg-white/10 p-4 text-center backdrop-blur-md"
             >
-              <p className="text-sm opacity-70">
-                {d.getHours()}時
-              </p>
-
-              <p className="text-lg mt-1">
-                {w.weather}
-              </p>
+              <p className="text-sm opacity-70">{d.getHours()}時</p>
+              <p className="mt-2 text-base font-bold leading-6">{w.weather}</p>
             </div>
           );
         })}

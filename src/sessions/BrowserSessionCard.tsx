@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Star } from "lucide-react";
+import { WebcamIcon } from "lucide-react";
 import BrowserPage from "../pages/BrowserPage";
 
 export default ({ discordSdk, instanceId, auth, ws }: any) => {
@@ -9,18 +9,18 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
     const fetchParticipants = async () => {
       try {
         const users = await discordSdk.commands.getInstanceConnectedParticipants();
-        if (users && users.participants) {
-           setParticipants(users.participants);
+        if (users?.participants) {
+          setParticipants(users.participants);
         }
       } catch (e) {
-        console.error("参加者の取得に失敗:", e);
+        console.error("参加者の取得に失敗しました", e);
       }
     };
 
     fetchParticipants();
 
     const handler = (data: any) => {
-      if (data && data.participants) {
+      if (data?.participants) {
         setParticipants(data.participants);
       }
     };
@@ -30,39 +30,48 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
     return () => {
       discordSdk.unsubscribe("ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE", handler);
     };
-  }, [instanceId]);
+  }, [discordSdk, instanceId]);
 
   return (
-    <div className="flex h-screen flex-col bg-[#313338] text-[#DBDEE1]">
-      <header className="flex items-center justify-between bg-[#2B2D31] px-4 py-3 shadow-lg border-b border-black/20">
+    <div className="flex min-h-screen flex-col bg-[#313338] text-[#DBDEE1]">
+      <header className="flex flex-col gap-3 border-b border-black/20 bg-[#2B2D31] px-4 py-3 shadow-lg md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <div className="bg-red-500 p-1.5 rounded-lg">
-            <Star size={20} className="text-white fill-current" />
+          <div className="rounded-lg bg-[#5865F2] p-1.5">
+            <WebcamIcon size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-white leading-none">Webブラウザ</h1>
-            <p className="text-[10px] text-[#B5BAC1] mt-1">マルチプレイに対応</p>
+            <h1 className="text-sm font-bold leading-none text-white">共有ブラウザ</h1>
+            <p className="mt-1 text-[10px] text-[#B5BAC1]">
+              URLの画面を参加者全員に共有します
+            </p>
           </div>
         </div>
-        <div className="p-2 flex gap-2 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:justify-end md:pb-0">
           {participants.length > 0 ? (
             participants.map((p: any) => (
-              <div key={p.id} className="flex items-center gap-1.5 text-xs bg-[#383a40] hover:bg-[#404249] px-2 py-1 rounded-full border border-gray-700 transition-colors">
-                <img 
-                  src={p.avatar ? `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.png` : "https://cdn.discordapp.com/embed/avatars/0.png"} 
-                  className="w-4 h-4 rounded-full"
+              <div
+                key={p.id}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-700 bg-[#383a40] px-2 py-1 text-xs transition-colors hover:bg-[#404249]"
+              >
+                <img
+                  src={
+                    p.avatar
+                      ? `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.png`
+                      : "https://cdn.discordapp.com/embed/avatars/0.png"
+                  }
+                  className="h-4 w-4 rounded-full"
                   alt=""
                 />
                 <span className="font-medium">{p.username}</span>
               </div>
             ))
           ) : (
-            <span className="text-xs text-gray-500 p-1">参加者を取得中...</span>
+            <span className="p-1 text-xs text-gray-500">参加者を取得中...</span>
           )}
         </div>
       </header>
 
-      <div className="p-4 md:p-8 h-screen overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 bg-[#2b2d31] text-white font-sans">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#2b2d31] p-4 font-sans text-white md:p-8">
         <BrowserPage
           sessionId={instanceId}
           ws={ws}
@@ -73,5 +82,5 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
         />
       </div>
     </div>
-  )
+  );
 };

@@ -13,17 +13,15 @@ const SharedBrowser = ({
   ws,
   currentUserId,
   currentUsername,
-  currentUserIcon
+  currentUserIcon,
 }: Props) => {
-  const [inputUrl, setInputUrl] = useState<string>("");
+  const [inputUrl, setInputUrl] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  
   const [activeUser, setActiveUser] = useState<string | null>(null);
   const [activeUserAvatar, setActiveUserAvatar] = useState<string | null>(null);
-  
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const clientId = useRef(crypto.randomUUID());
   const currentImageRef = useRef<string | null>(null);
 
@@ -66,14 +64,16 @@ const SharedBrowser = ({
     };
 
     const requestSync = () => {
-      ws.send(JSON.stringify({
-        type: "browser_sync",
-        clientId: clientId.current
-      }));
+      ws.send(
+        JSON.stringify({
+          type: "browser_sync",
+          clientId: clientId.current,
+        })
+      );
     };
 
     ws.addEventListener("message", handleMessage);
-    
+
     if (ws.readyState === WebSocket.OPEN) {
       requestSync();
     } else {
@@ -85,146 +85,173 @@ const SharedBrowser = ({
     };
   }, [ws]);
 
-  const sendUpdate = (img: string, type: "browser_update" | "browser_sync_all" = "browser_update") => {
+  const sendUpdate = (
+    img: string,
+    type: "browser_update" | "browser_sync_all" = "browser_update"
+  ) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: type,
-        clientId: clientId.current,
-        payload: {
-          image: img,
-          userId: currentUserId,
-          username: currentUsername,
-          iconURL: currentUserIcon,
-        }
-      }));
+      ws.send(
+        JSON.stringify({
+          type,
+          clientId: clientId.current,
+          payload: {
+            image: img,
+            userId: currentUserId,
+            username: currentUsername,
+            iconURL: currentUserIcon,
+          },
+        })
+      );
     }
   };
 
   const handleFetchImage = async () => {
     if (!inputUrl.trim()) {
-      setError("URLを入力してください");
+      setError("URLを入力してください。");
       return;
     }
 
     if (!isValidUrl(inputUrl)) {
-      setError("正しいURL形式 (https://...) で入力してください");
+      setError("https:// から始まる正しいURLを入力してください。");
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    const apiUrl = '/securl/jx/get_page_jx.php';
     const params = new URLSearchParams();
-    params.append('url', inputUrl);
-    params.append('waitTime', '1');
-    params.append('browserWidth', '1280'); 
-    params.append('browserHeight', '720');
+    params.append("url", inputUrl);
+    params.append("waitTime", "1");
+    params.append("browserWidth", "1280");
+    params.append("browserHeight", "720");
 
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      const response = await fetch("/securl/jx/get_page_jx.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
         body: params,
       });
 
-      if (!response.ok) throw new Error('通信エラー');
+      if (!response.ok) throw new Error("通信エラー");
 
       const result = await response.json();
       if (result.img) {
         const fullUrl = `/securl${result.img}`;
-        
+
         setImageUrl(fullUrl);
         setActiveUser(currentUsername);
-        setActiveUserAvatar(currentUserIcon as any);
+        setActiveUserAvatar(currentUserIcon ?? null);
         currentImageRef.current = fullUrl;
-        
+
         sendUpdate(fullUrl);
       } else {
-        throw new Error('画像が生成できませんでした');
+        throw new Error("画像を作成できませんでした");
       }
     } catch (err) {
-      setError('取得に失敗しました');
+      setError("ページの取得に失敗しました。時間をおいてもう一度試してください。");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center w-full max-w-5xl mx-auto p-4 gap-6">
-      <div className="flex flex-col md:flex-row gap-3 mb-8 bg-[#2b2d31] p-4 rounded-xl border border-gray-700">
-        <input
-          type="text"
-          value={inputUrl}
-          onChange={(e) => setInputUrl(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleFetchImage()}
-          placeholder="共有したいURLを入力 (https://...)"
-          className="flex-1 p-2.5 rounded-lg bg-[#383a40] border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#5865F2]"
-        />
-        <button
-          onClick={handleFetchImage}
-          disabled={loading}
-          className={`px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all ${
-            loading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'
-          }`}
-        >
-          {loading ? '取得中...' : 'アクセスする'}
-        </button>
+    <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-5 p-0 md:p-4">
+      <div className="w-full rounded-xl border border-gray-700 bg-[#232428] p-4">
+        <label className="flex flex-col gap-2 text-sm font-bold text-[#DBDEE1]">
+          みんなに見せたいページのURL
+          <div className="flex flex-col gap-3 md:flex-row">
+            <input
+              type="url"
+              value={inputUrl}
+              onChange={(e) => setInputUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleFetchImage()}
+              placeholder="https://example.com"
+              className="min-h-12 flex-1 rounded-lg border border-gray-600 bg-[#383a40] p-3 font-normal text-white focus:outline-none focus:ring-2 focus:ring-[#5865F2]"
+              inputMode="url"
+            />
+            <button
+              onClick={handleFetchImage}
+              disabled={loading}
+              className={`min-h-12 rounded-lg px-6 py-3 font-bold text-white shadow-lg transition-all ${
+                loading ? "bg-gray-500" : "bg-[#5865F2] hover:bg-[#4752c4] active:scale-95"
+              }`}
+            >
+              {loading ? "取得中..." : "表示する"}
+            </button>
+          </div>
+        </label>
+        <p className="mt-2 text-xs leading-5 text-[#B5BAC1]">
+          入力したURLの画面を画像として取得し、参加者全員に共有します。
+        </p>
       </div>
 
-      {error && <div className="text-red-500 text-sm bg-red-50 px-4 py-2 rounded-lg border border-red-100">{error}</div>}
+      {error && (
+        <div className="w-full rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      )}
 
-      <div className="flex items-center gap-3 min-h-[40px]">
+      <div className="flex min-h-10 items-center gap-3">
         {activeUser ? (
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100 animate-fade-in">
-            <img 
-              src={activeUserAvatar || ""} 
-              alt={activeUser}
-              className="w-6 h-6 rounded-full object-cover border border-indigo-200"
-              onError={(e) => { (e.target as HTMLImageElement).src = "https://cdn.discordapp.com/embed/avatars/0.png"; }}
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-[#232428] px-3 py-1.5 shadow-sm">
+            <img
+              src={activeUserAvatar || "https://cdn.discordapp.com/embed/avatars/0.png"}
+              alt=""
+              className="h-6 w-6 rounded-full border border-indigo-200 object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "https://cdn.discordapp.com/embed/avatars/0.png";
+              }}
             />
-            <span className="text-sm font-bold text-gray-700">
-              {activeUser} <span className="font-normal text-gray-500 italic">が共有中</span>
+            <span className="text-sm font-bold text-white">
+              {activeUser} <span className="font-normal text-[#B5BAC1]">が共有中</span>
             </span>
           </div>
         ) : (
-          <div className="text-sm text-gray-400 italic font-light">待機中...</div>
+          <div className="text-sm text-gray-400">URLの入力を待っています</div>
         )}
       </div>
 
-      <div className="relative w-full aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
+      <div className="relative w-full overflow-hidden rounded-xl border border-white/10 bg-gray-900 shadow-2xl aspect-video">
         {imageUrl ? (
           <>
-            <img 
-              src={imageUrl} 
-              className="w-full h-full object-contain transition-opacity duration-700" 
-              alt="Shared screen"
+            <img
+              src={imageUrl}
+              className="h-full w-full object-contain transition-opacity duration-700"
+              alt="共有中のページ"
             />
-            <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-md p-1 pr-3 rounded-full border border-white/20">
-              <img 
-                src={activeUserAvatar || ""} 
-                className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                alt="operator"
-                onError={(e) => { (e.target as HTMLImageElement).src = "https://cdn.discordapp.com/embed/avatars/0.png"; }}
+            <div className="absolute right-3 top-3 flex items-center gap-2 rounded-full border border-white/20 bg-black/60 p-1 pr-3 backdrop-blur-md">
+              <img
+                src={activeUserAvatar || "https://cdn.discordapp.com/embed/avatars/0.png"}
+                className="h-8 w-8 rounded-full border-2 border-white object-cover"
+                alt=""
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://cdn.discordapp.com/embed/avatars/0.png";
+                }}
               />
               <div className="flex flex-col leading-none">
-                <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-tighter">Shared By</span>
-                <span className="text-xs text-white font-medium truncate max-w-[80px]">{activeUser}</span>
+                <span className="text-[10px] font-bold uppercase text-indigo-300">共有者</span>
+                <span className="max-w-20 truncate text-xs font-medium text-white">{activeUser}</span>
               </div>
             </div>
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-500 flex-col gap-4">
-            <div className="text-5xl opacity-20">🌐</div>
-            <p className="font-medium tracking-widest text-sm uppercase">URLを入力して始めましょう！</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-gray-500">
+            <p className="text-sm font-bold uppercase tracking-wider">URLを入力して開始</p>
+            <p className="text-xs leading-5 text-gray-400">
+              スマホでは上の入力欄にURLを貼り付けて「表示する」を押してください。
+            </p>
           </div>
         )}
-        
+
         {loading && (
-          <div className="absolute inset-0 bg-indigo-900/40 backdrop-blur-[2px] flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-indigo-900/40 backdrop-blur-[2px]">
             <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full shadow-xl"></div>
-              <span className="text-white text-[10px] font-black tracking-[0.2em] drop-shadow-md">取得しています...</span>
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-white border-t-transparent shadow-xl" />
+              <span className="text-xs font-black tracking-widest text-white drop-shadow-md">
+                取得しています...
+              </span>
             </div>
           </div>
         )}
