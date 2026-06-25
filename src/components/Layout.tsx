@@ -25,13 +25,11 @@ const navGroups = [
     { icon: Home, label: "ホーム", shortLabel: "ホーム", id: "home" },
   ],
   [
-    { icon: Earth, label: "地震情報", shortLabel: "地震", id: "quake" },
     { icon: Clock, label: "現在時刻", shortLabel: "時計", id: "clock" },
     { icon: Sun, label: "天気予報", shortLabel: "天気", id: "weather" },
   ],
   [
     { icon: Star, label: "Tier表", shortLabel: "Tier", id: "tier" },
-    { icon: WebcamIcon, label: "共有ブラウザ", shortLabel: "共有", id: "browser" },
   ],
   [
     { icon: Users, label: "貢献者", shortLabel: "貢献者", id: "contributors" },
@@ -52,7 +50,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const touchEndX = useRef<number | null>(null);
   const activeItem = navItems.find((item) => item.id === activeTab) ?? navItems[0];
   const bottomItems = navItems.filter((item) =>
-    ["home", "quake", "tier", "browser"].includes(item.id)
+    ["home", "tier"].includes(item.id)
   );
 
   useEffect(() => {

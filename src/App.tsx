@@ -2,12 +2,10 @@ import React, { useEffect, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
 import { Layout } from "./components/Layout";
 import HomePage from "./pages/HomePage";
-import QuakePage from "./pages/QuakePage";
 import ContributorsPage from "./pages/ContributorsPage";
 import TierSessionCard from "./sessions/TierSessionCard";
 import ClockPage from "./pages/ClockPage";
 import WeatherPage from "./pages/WeatherPage";
-import BrowserSessionCard from "./sessions/BrowserSessionCard";
 
 const createLocalDiscordSdk = () => ({
   commands: {
@@ -162,7 +160,6 @@ const App: React.FC = () => {
     >
       {activeTab === "home" && <HomePage user={auth.user} />}
       {activeTab === "contributors" && <ContributorsPage />}
-      {activeTab === "quake" && <QuakePage />}
 
       {activeTab === "tier" && (
         <TierSessionCard
@@ -175,15 +172,6 @@ const App: React.FC = () => {
 
       {activeTab === "clock" && <ClockPage />}
       {activeTab === "weather" && <WeatherPage />}
-
-      {activeTab === "browser" && (
-        <BrowserSessionCard
-          instanceId={instanceId}
-          auth={auth}
-          ws={ws}
-          discordSdk={discordSdk}
-        />
-      )}
     </Layout>
   );
 };
