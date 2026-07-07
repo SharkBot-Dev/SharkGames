@@ -146,6 +146,8 @@ manager = GameStateManager.GameStateManager()
 async def global_ws_endpoint(ws: WebSocket, session_id: str):
     await manager.connect(ws, session_id)
     http_session = ws.app.state.http_session 
+    manager.sessions_data[session_id].setdefault("tier_entries", [])
+    manager.sessions_data[session_id].setdefault("ox_entries", [([None] * 9), False])
 
     try:
         while True:
@@ -160,9 +162,14 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
 
             if msg_type == "tier_update":
                 raw_entries = payload.get("entries", [])
+                if not isinstance(raw_entries, list):
+                    raw_entries = []
                 processed_entries = []
 
                 for entry in raw_entries:
+                    if not isinstance(entry, dict):
+                        continue
+
                     if "userId" in entry and "username" in entry:
                         processed_entries.append(entry)
                         continue
@@ -187,7 +194,9 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                     json.dumps({
                         "type": msg_type,
                         "clientId": client_id,
-                        "payload": payload
+                        "payload": {
+                            "entries": processed_entries
+                        }
                     }),
                     exclude_ws=ws 
                 )
@@ -195,16 +204,13 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
             elif msg_type == "tier_sync":
                 current_entries = manager.sessions_data[session_id]["tier_entries"]
 
-                await manager.broadcast(
-                    session_id,
-                    json.dumps({
-                        "type": "sync_all",
-                        "clientId": client_id,
-                        "payload": {
-                            "entries": current_entries
-                        }
-                    })
-                )
+                await ws.send_text(json.dumps({
+                    "type": "tier_sync_all",
+                    "clientId": client_id,
+                    "payload": {
+                        "entries": current_entries
+                    }
+                }))
 
             elif msg_type == "ox_update":
                 raw_entries = payload.get("entries", [([None] * 9), False])
@@ -239,16 +245,13 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
             elif msg_type == "ox_sync":
                 current_entries = manager.sessions_data[session_id]["ox_entries"]
 
-                await manager.broadcast(
-                    session_id,
-                    json.dumps({
-                        "type": "ox_sync_all",
-                        "clientId": client_id,
-                        "payload": {
-                            "entries": current_entries
-                        }
-                    })
-                )
+                await ws.send_text(json.dumps({
+                    "type": "ox_sync_all",
+                    "clientId": client_id,
+                    "payload": {
+                        "entries": current_entries
+                    }
+                }))
 
             elif msg_type == "polling":
                 current_data = manager.sessions_data.get(session_id, {})

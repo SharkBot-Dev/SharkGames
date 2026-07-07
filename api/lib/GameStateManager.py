@@ -23,7 +23,7 @@ class GameStateManager:
         
         # 接続時に現在の全データを送信
         await ws.send_text(json.dumps({
-            "type": "sync_all",
+            "type": "session_sync_all",
             "payload": self.sessions_data[session_id]
         }))
 

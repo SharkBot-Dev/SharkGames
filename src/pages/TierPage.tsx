@@ -52,7 +52,7 @@ export default ({
         const data = JSON.parse(event.data);
         if (
           (data.type === "tier_update" && data.clientId !== clientId) ||
-          data.type === "sync_all"
+          data.type === "tier_sync_all"
         ) {
           if (Array.isArray(data.payload?.entries)) {
             setEntries(data.payload.entries);

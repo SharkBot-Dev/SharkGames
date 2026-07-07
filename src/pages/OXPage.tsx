@@ -18,6 +18,15 @@ const checkWinner = (squares: (string | null)[]) => {
   return null;
 };
 
+const getParticipantName = (participant: any, fallback: string) =>
+  participant?.global_name ||
+  participant?.display_name ||
+  participant?.displayName ||
+  participant?.username ||
+  participant?.user?.global_name ||
+  participant?.user?.username ||
+  fallback;
+
 export default ({
   sessionId,
   discordSdk,
@@ -44,6 +53,9 @@ export default ({
 
   const playerO = participants[0];
   const playerX = participants[1];
+  const playerOName = getParticipantName(playerO, "O");
+  const playerXName = getParticipantName(playerX, "X");
+  const getRoleName = (role: "O" | "X") => (role === "O" ? playerOName : playerXName);
 
   let myRole: "O" | "X" | "Spectator" = "Spectator";
   if (playerO && currentUserId === playerO.id) {
@@ -146,9 +158,9 @@ export default ({
   const gameResult = checkWinner(entries);
   let statusText = "";
   if (gameResult) {
-    statusText = gameResult.winner === "Draw" ? "引き分けです！" : `勝者: ${gameResult.winner}`;
+    statusText = gameResult.winner === "Draw" ? "引き分けです！" : `勝者: ${getRoleName(gameResult.winner as "O" | "X")}`;
   } else {
-    statusText = `次の手番: ${currentTurnMark}`;
+    statusText = `次の手番: ${getRoleName(currentTurnMark)}`;
   }
 
   return (
@@ -156,8 +168,8 @@ export default ({
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#2e3035] pb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-[#B5BAC1]">あなたの状態:</span>
-          {myRole === "O" && <span className="px-3 py-1 bg-[#5865F2] rounded-full text-xs font-bold">プレイヤー O (先攻)</span>}
-          {myRole === "X" && <span className="px-3 py-1 bg-[#f23f43] rounded-full text-xs font-bold">プレイヤー X (後攻)</span>}
+          {myRole === "O" && <span className="px-3 py-1 bg-[#5865F2] rounded-full text-xs font-bold">{playerOName} (先攻)</span>}
+          {myRole === "X" && <span className="px-3 py-1 bg-[#f23f43] rounded-full text-xs font-bold">{playerXName} (後攻)</span>}
           {myRole === "Spectator" && <span className="px-3 py-1 bg-[#4e5058] text-[#dbdee1] rounded-full text-xs font-bold">👀 観戦モード</span>}
           
           {!gameResult && myRole !== "Spectator" && (
