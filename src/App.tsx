@@ -19,6 +19,12 @@ const createLocalDiscordSdk = () => ({
   unsubscribe: () => undefined,
 });
 
+const createWebSocketUrl = (sessionId: string) => {
+  const url = new URL(`/api/ws/${encodeURIComponent(sessionId)}`, window.location.href);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
+};
+
 const App: React.FC = () => {
   const [auth, setAuth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +34,6 @@ const App: React.FC = () => {
 
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
-  const clientId = useRef(crypto.randomUUID());
 
   useEffect(() => {
     const setup = async () => {
@@ -109,38 +114,73 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!instanceId || instanceId === "local-dev") return;
 
+    let socket: WebSocket | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
 
-    const socket = new WebSocket(`api/ws/${instanceId}`);
-
-    const runPolling = () => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(
-          JSON.stringify({
-            type: "polling",
-            clientId: "client_heartbeat",
-            payload: {
-              lastSyncTime: new Date().toISOString(),
-            },
-          })
-        );
-      }
-    };
-
-    socket.onopen = () => {
-      console.log("WS Connected");
-      pollInterval = setInterval(runPolling, 5000);
-    };
-
-    socket.onclose = () => console.log("WS closed");
-
-    setWs(socket);
-
-    return () => {
+    const clearPolling = () => {
       if (pollInterval) {
         clearInterval(pollInterval);
+        pollInterval = null;
       }
-      socket.close();
+    };
+
+    const connect = () => {
+      if (stopped) return;
+
+      const nextSocket = new WebSocket(createWebSocketUrl(instanceId));
+      socket = nextSocket;
+      setWs(nextSocket);
+
+      const runPolling = () => {
+        if (nextSocket.readyState === WebSocket.OPEN) {
+          nextSocket.send(
+            JSON.stringify({
+              type: "polling",
+              clientId: "client_heartbeat",
+              payload: {
+                lastSyncTime: new Date().toISOString(),
+              },
+            })
+          );
+        }
+      };
+
+      nextSocket.onopen = () => {
+        console.log("WS Connected");
+        clearPolling();
+        pollInterval = setInterval(runPolling, 5000);
+      };
+
+      nextSocket.onerror = () => {
+        nextSocket.close();
+      };
+
+      nextSocket.onclose = () => {
+        console.log("WS closed");
+        clearPolling();
+        setWs((current) => (current === nextSocket ? null : current));
+
+        if (!stopped && socket === nextSocket) {
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+          }
+          reconnectTimeout = setTimeout(connect, 1000);
+        }
+      };
+    };
+
+    connect();
+
+    return () => {
+      stopped = true;
+      clearPolling();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      socket?.close();
+      setWs((current) => (current === socket ? null : current));
     };
   }, [instanceId]);
 
@@ -169,7 +209,7 @@ const App: React.FC = () => {
           auth={auth}
           ws={ws}
           discordSdk={discordSdk}
-          clientId={clientId.current}
+          clientId={instanceId}
         />
       )}
 
@@ -179,7 +219,7 @@ const App: React.FC = () => {
           auth={auth}
           ws={ws}
           discordSdk={discordSdk}
-          clientId={clientId.current}
+          clientId={instanceId}
         />
       )}
 

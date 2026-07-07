@@ -27,6 +27,8 @@ const getParticipantName = (participant: any, fallback: string) =>
   participant?.user?.username ||
   fallback;
 
+const getParticipantId = (participant: any) => participant?.id || participant?.user?.id;
+
 export default ({
   sessionId,
   discordSdk,
@@ -58,9 +60,9 @@ export default ({
   const getRoleName = (role: "O" | "X") => (role === "O" ? playerOName : playerXName);
 
   let myRole: "O" | "X" | "Spectator" = "Spectator";
-  if (playerO && currentUserId === playerO.id) {
+  if (playerO && currentUserId === getParticipantId(playerO)) {
     myRole = "O";
-  } else if (playerX && currentUserId === playerX.id) {
+  } else if (playerX && currentUserId === getParticipantId(playerX)) {
     myRole = "X";
   }
 

@@ -9,17 +9,19 @@ class GameStateManager:
         # { session_id: { "tier": [...], "quake": {...}, "metadata": {} } }
         self.sessions_data: Dict[str, Dict] = {}
 
-    async def connect(self, ws: WebSocket, session_id: str):
+    def default_session_data(self) -> Dict:
+        return {
+            "tier_entries": [],
+            "ox_entries": [([None] * 9), False],
+            "quake_state": {},
+            "last_update_by": None
+        }
+
+    async def connect(self, ws: WebSocket, session_id: str, session_data: Dict = None):
         await ws.accept()
         self.clients.setdefault(session_id, []).append(ws)
         # セッションの初期データ構造を作成
-        if session_id not in self.sessions_data:
-            self.sessions_data[session_id] = {
-                "tier_entries": [],
-                "ox_entries": [([None] * 9), False],
-                "quake_state": {},
-                "last_update_by": None
-            }
+        self.sessions_data[session_id] = session_data or self.sessions_data.get(session_id) or self.default_session_data()
         
         # 接続時に現在の全データを送信
         await ws.send_text(json.dumps({

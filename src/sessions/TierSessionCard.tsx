@@ -2,6 +2,19 @@ import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import TierPage from "../pages/TierPage";
 
+const extractParticipants = (payload: any) =>
+  payload?.participants || payload?.data?.participants || payload?.event?.participants;
+
+const getParticipantId = (participant: any) => participant?.id || participant?.user?.id;
+
+const getParticipantAvatar = (participant: any) => {
+  const id = getParticipantId(participant);
+  const avatar = participant?.avatar || participant?.user?.avatar;
+  return id && avatar
+    ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`
+    : "https://cdn.discordapp.com/embed/avatars/0.png";
+};
+
 export default ({ discordSdk, instanceId, auth, ws, clientId }: any) => {
   const [participants, setParticipants] = useState<any[]>([]);
 
@@ -9,8 +22,9 @@ export default ({ discordSdk, instanceId, auth, ws, clientId }: any) => {
     const fetchParticipants = async () => {
       try {
         const users = await discordSdk.commands.getInstanceConnectedParticipants();
-        if (users?.participants) {
-          setParticipants(users.participants);
+        const nextParticipants = extractParticipants(users);
+        if (Array.isArray(nextParticipants)) {
+          setParticipants(nextParticipants);
         }
       } catch (e) {
         console.error("参加者の取得に失敗しました", e);
@@ -20,8 +34,9 @@ export default ({ discordSdk, instanceId, auth, ws, clientId }: any) => {
     fetchParticipants();
 
     const handler = (data: any) => {
-      if (data?.participants) {
-        setParticipants(data.participants);
+      const nextParticipants = extractParticipants(data);
+      if (Array.isArray(nextParticipants)) {
+        setParticipants(nextParticipants);
       }
     };
 
@@ -50,15 +65,11 @@ export default ({ discordSdk, instanceId, auth, ws, clientId }: any) => {
           {participants.length > 0 ? (
             participants.map((p: any) => (
               <div
-                key={p.id}
+                key={getParticipantId(p)}
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-700 bg-[#383a40] px-2 py-1 text-xs transition-colors hover:bg-[#404249]"
               >
                 <img
-                  src={
-                    p.avatar
-                      ? `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.png`
-                      : "https://cdn.discordapp.com/embed/avatars/0.png"
-                  }
+                  src={getParticipantAvatar(p)}
                   className="h-4 w-4 rounded-full"
                   alt=""
                 />

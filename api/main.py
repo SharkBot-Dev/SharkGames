@@ -1,4 +1,5 @@
 from datetime import datetime
+import asyncio
 import os
 import logging
 from contextlib import asynccontextmanager
@@ -22,10 +23,21 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.http_session = aiohttp.ClientSession()
-    yield
-    await app.state.http_session.close()
+    app.state.redis_listener_task = asyncio.create_task(redis_broadcast_listener())
+    try:
+        yield
+    finally:
+        app.state.redis_listener_task.cancel()
+        try:
+            await app.state.redis_listener_task
+        except asyncio.CancelledError:
+            pass
+        await app.state.http_session.close()
+        await redis_client.aclose()
 
 redis_client = redis.asyncio.Redis()
+REDIS_WS_CHANNEL = "games:websocket:broadcast"
+PROCESS_ID = str(uuid.uuid4())
 
 app = FastAPI(lifespan=lifespan)
 
@@ -142,9 +154,88 @@ async def get_user_info(oauth_token: str, session: aiohttp.ClientSession):
 
 manager = GameStateManager.GameStateManager()
 
+def normalize_session_data(data):
+    default_data = manager.default_session_data()
+    if isinstance(data, dict):
+        default_data.update(data)
+
+    if not isinstance(default_data.get("tier_entries"), list):
+        default_data["tier_entries"] = []
+
+    ox_entries = default_data.get("ox_entries")
+    if not isinstance(ox_entries, list) or len(ox_entries) < 2:
+        ox_entries = [([None] * 9), False]
+
+    board = ox_entries[0]
+    next_turn = ox_entries[1]
+    if not isinstance(board, list) or len(board) != 9:
+        board = [None] * 9
+
+    default_data["ox_entries"] = [
+        [square if square in ("O", "X") else None for square in board],
+        bool(next_turn)
+    ]
+    return default_data
+
+def session_state_key(session_id: str):
+    return f"games:session:{session_id}"
+
+async def load_session_data(session_id: str):
+    try:
+        raw_data = await redis_client.get(session_state_key(session_id))
+        if raw_data:
+            data = json.loads(raw_data)
+            manager.sessions_data[session_id] = normalize_session_data(data)
+            return manager.sessions_data[session_id]
+    except Exception:
+        logging.exception("Failed to load session data from Redis")
+
+    manager.sessions_data[session_id] = normalize_session_data(manager.sessions_data.get(session_id))
+    return manager.sessions_data[session_id]
+
+async def save_session_data(session_id: str):
+    data = normalize_session_data(manager.sessions_data.get(session_id))
+    manager.sessions_data[session_id] = data
+    await redis_client.set(session_state_key(session_id), json.dumps(data))
+
+async def publish_ws_message(session_id: str, message: str):
+    await redis_client.publish(
+        REDIS_WS_CHANNEL,
+        json.dumps({
+            "origin": PROCESS_ID,
+            "session_id": session_id,
+            "message": message
+        })
+    )
+
+async def redis_broadcast_listener():
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe(REDIS_WS_CHANNEL)
+    try:
+        async for event in pubsub.listen():
+            if event.get("type") != "message":
+                continue
+
+            try:
+                data = json.loads(event["data"])
+            except (TypeError, json.JSONDecodeError):
+                continue
+
+            if data.get("origin") == PROCESS_ID:
+                continue
+
+            session_id = data.get("session_id")
+            message = data.get("message")
+            if isinstance(session_id, str) and isinstance(message, str):
+                await manager.broadcast(session_id, message)
+    finally:
+        await pubsub.unsubscribe(REDIS_WS_CHANNEL)
+        await pubsub.close()
+
 @app.websocket("/ws/{session_id}")
 async def global_ws_endpoint(ws: WebSocket, session_id: str):
-    await manager.connect(ws, session_id)
+    session_data = await load_session_data(session_id)
+    await manager.connect(ws, session_id, session_data)
     http_session = ws.app.state.http_session 
     manager.sessions_data[session_id].setdefault("tier_entries", [])
     manager.sessions_data[session_id].setdefault("ox_entries", [([None] * 9), False])
@@ -188,21 +279,25 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                             continue
 
                 manager.sessions_data[session_id]["tier_entries"] = processed_entries
+                await save_session_data(session_id)
+
+                broadcast_message = json.dumps({
+                    "type": msg_type,
+                    "clientId": client_id,
+                    "payload": {
+                        "entries": processed_entries
+                    }
+                })
 
                 await manager.broadcast(
                     session_id, 
-                    json.dumps({
-                        "type": msg_type,
-                        "clientId": client_id,
-                        "payload": {
-                            "entries": processed_entries
-                        }
-                    }),
+                    broadcast_message,
                     exclude_ws=ws 
                 )
+                await publish_ws_message(session_id, broadcast_message)
 
             elif msg_type == "tier_sync":
-                current_entries = manager.sessions_data[session_id]["tier_entries"]
+                current_entries = (await load_session_data(session_id))["tier_entries"]
 
                 await ws.send_text(json.dumps({
                     "type": "tier_sync_all",
@@ -229,21 +324,25 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                 normalized_entries = [normalized_board, bool(next_turn)]
 
                 manager.sessions_data[session_id]["ox_entries"] = normalized_entries
+                await save_session_data(session_id)
+
+                broadcast_message = json.dumps({
+                    "type": msg_type,
+                    "clientId": client_id,
+                    "payload": {
+                        "entries": normalized_entries
+                    }
+                })
 
                 await manager.broadcast(
                     session_id, 
-                    json.dumps({
-                        "type": msg_type,
-                        "clientId": client_id,
-                        "payload": {
-                            "entries": normalized_entries
-                        }
-                    }),
+                    broadcast_message,
                     exclude_ws=ws 
                 )
+                await publish_ws_message(session_id, broadcast_message)
 
             elif msg_type == "ox_sync":
-                current_entries = manager.sessions_data[session_id]["ox_entries"]
+                current_entries = (await load_session_data(session_id))["ox_entries"]
 
                 await ws.send_text(json.dumps({
                     "type": "ox_sync_all",
@@ -254,7 +353,7 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                 }))
 
             elif msg_type == "polling":
-                current_data = manager.sessions_data.get(session_id, {})
+                current_data = await load_session_data(session_id)
                 
                 await ws.send_text(json.dumps({
                     "type": "polling_response",
@@ -267,19 +366,23 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                 }))
 
             else:
+                broadcast_message = json.dumps({
+                    "type": msg_type,
+                    "clientId": client_id,
+                    "payload": payload
+                })
+
                 await manager.broadcast(
                     session_id, 
-                    json.dumps({
-                        "type": msg_type,
-                        "clientId": client_id,
-                        "payload": payload
-                    }),
+                    broadcast_message,
                     exclude_ws=ws 
                 )
+                await publish_ws_message(session_id, broadcast_message)
 
     except WebSocketDisconnect:
         manager.disconnect(ws, session_id)
     except Exception as e:
+        manager.disconnect(ws, session_id)
         print("Error: ", e)
 
 if __name__ == "__main__":
