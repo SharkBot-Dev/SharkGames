@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
 import { Layout } from "./components/Layout";
 import HomePage from "./pages/HomePage";
@@ -138,7 +138,7 @@ const App: React.FC = () => {
           nextSocket.send(
             JSON.stringify({
               type: "polling",
-              clientId: "client_heartbeat",
+              clientId: instanceId,
               payload: {
                 lastSyncTime: new Date().toISOString(),
               },

@@ -47,16 +47,19 @@ export default ({
   useEffect(() => {
     if (!ws) return;
 
+    const applyEntries = (entriesPayload: unknown) => {
+      if (Array.isArray(entriesPayload)) {
+        setEntries(entriesPayload);
+      }
+    };
+
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        if (
-          (data.type === "tier_update" && data.clientId !== clientId) ||
-          data.type === "tier_sync_all"
-        ) {
-          if (Array.isArray(data.payload?.entries)) {
-            setEntries(data.payload.entries);
-          }
+        if (data.type === "tier_update" || data.type === "tier_sync_all") {
+          applyEntries(data.payload?.entries);
+        } else if (data.type === "session_sync_all") {
+          applyEntries(data.payload?.tier_entries);
         }
       } catch (e) {
         console.error("WS message parse error", e);

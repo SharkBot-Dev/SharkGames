@@ -73,18 +73,21 @@ export default ({
   useEffect(() => {
     if (!ws) return;
 
+    const applyEntries = (entriesPayload: unknown) => {
+      if (!Array.isArray(entriesPayload)) return;
+
+      const [board, nextPlayer] = entriesPayload;
+      if (Array.isArray(board)) setEntries(board);
+      if (typeof nextPlayer === "boolean") setXIsNext(nextPlayer);
+    };
+
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        if (
-          (data.type === "ox_update" && data.clientId !== clientId) ||
-          data.type === "ox_sync_all"
-        ) {
-          if (Array.isArray(data.payload?.entries)) {
-            const [board, nextPlayer] = data.payload.entries;
-            if (Array.isArray(board)) setEntries(board);
-            if (typeof nextPlayer === "boolean") setXIsNext(nextPlayer);
-          }
+        if (data.type === "ox_update" || data.type === "ox_sync_all") {
+          applyEntries(data.payload?.entries);
+        } else if (data.type === "session_sync_all") {
+          applyEntries(data.payload?.ox_entries);
         }
       } catch (e) {
         console.error("WS message parse error", e);
