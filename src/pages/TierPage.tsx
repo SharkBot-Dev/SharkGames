@@ -28,6 +28,7 @@ export default ({
   currentUserId,
   currentUsername,
   currentUserIcon,
+  clientId,
 }: {
   sessionId: string;
   discordSdk: any;
@@ -36,11 +37,11 @@ export default ({
   currentUserId: string;
   currentUsername: string;
   currentUserIcon?: string;
+  clientId: string;
 }) => {
   const [inputText, setInputText] = useState("");
   const [inputRank, setInputRank] = useState<TierEntry["rank"]>("S");
   const [entries, setEntries] = useState<TierEntry[]>([]);
-  const clientId = useRef(crypto.randomUUID());
   const tierTableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,10 +51,12 @@ export default ({
       try {
         const data = JSON.parse(event.data);
         if (
-          (data.type === "tier_update" && data.clientId !== clientId.current) ||
+          (data.type === "tier_update" && data.clientId !== clientId) ||
           data.type === "sync_all"
         ) {
-          setEntries(data.payload.entries);
+          if (Array.isArray(data.payload?.entries)) {
+            setEntries(data.payload.entries);
+          }
         }
       } catch (e) {
         console.error("WS message parse error", e);
@@ -64,7 +67,7 @@ export default ({
       ws.send(
         JSON.stringify({
           type: "tier_sync",
-          clientId: clientId.current,
+          clientId,
         })
       );
     };
@@ -81,7 +84,7 @@ export default ({
       ws.removeEventListener("message", handleMessage);
       ws.removeEventListener("open", sendSyncRequest);
     };
-  }, [sessionId, ws]);
+  }, [clientId, sessionId, ws]);
 
   const handleShare = async () => {
     if (!tierTableRef.current) return;
@@ -132,7 +135,7 @@ export default ({
       ws.send(
         JSON.stringify({
           type: "tier_update",
-          clientId: clientId.current,
+          clientId,
           payload: { entries: updatedEntries },
         })
       );

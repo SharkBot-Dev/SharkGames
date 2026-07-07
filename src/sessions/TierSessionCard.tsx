@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import TierPage from "../pages/TierPage";
 
-export default ({ discordSdk, instanceId, auth, ws }: any) => {
+export default ({ discordSdk, instanceId, auth, ws, clientId }: any) => {
   const [participants, setParticipants] = useState<any[]>([]);
 
   useEffect(() => {
@@ -62,7 +62,6 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
                   className="h-4 w-4 rounded-full"
                   alt=""
                 />
-                <span className="font-medium">{p.username}</span>
               </div>
             ))
           ) : (
@@ -80,6 +79,7 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
           currentUserId={auth.user.id}
           currentUsername={auth.user.username}
           currentUserIcon={`https://cdn.discordapp.com/avatars/${auth.user.id}/${auth.user.avatar}.png`}
+          clientId={clientId}
         />
       </div>
     </div>

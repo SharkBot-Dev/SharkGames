@@ -206,6 +206,50 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
                     })
                 )
 
+            elif msg_type == "ox_update":
+                raw_entries = payload.get("entries", [([None] * 9), False])
+                if not isinstance(raw_entries, list):
+                    raw_entries = [([None] * 9), False]
+                board = raw_entries[0] if len(raw_entries) > 0 else [None] * 9
+                next_turn = raw_entries[1] if len(raw_entries) > 1 else False
+
+                if not isinstance(board, list) or len(board) != 9:
+                    board = [None] * 9
+
+                normalized_board = [
+                    square if square in ("O", "X") else None
+                    for square in board
+                ]
+                normalized_entries = [normalized_board, bool(next_turn)]
+
+                manager.sessions_data[session_id]["ox_entries"] = normalized_entries
+
+                await manager.broadcast(
+                    session_id, 
+                    json.dumps({
+                        "type": msg_type,
+                        "clientId": client_id,
+                        "payload": {
+                            "entries": normalized_entries
+                        }
+                    }),
+                    exclude_ws=ws 
+                )
+
+            elif msg_type == "ox_sync":
+                current_entries = manager.sessions_data[session_id]["ox_entries"]
+
+                await manager.broadcast(
+                    session_id,
+                    json.dumps({
+                        "type": "ox_sync_all",
+                        "clientId": client_id,
+                        "payload": {
+                            "entries": current_entries
+                        }
+                    })
+                )
+
             elif msg_type == "polling":
                 current_data = manager.sessions_data.get(session_id, {})
                 
@@ -232,6 +276,8 @@ async def global_ws_endpoint(ws: WebSocket, session_id: str):
 
     except WebSocketDisconnect:
         manager.disconnect(ws, session_id)
+    except Exception as e:
+        print("Error: ", e)
 
 if __name__ == "__main__":
     import uvicorn

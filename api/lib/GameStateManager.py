@@ -16,6 +16,7 @@ class GameStateManager:
         if session_id not in self.sessions_data:
             self.sessions_data[session_id] = {
                 "tier_entries": [],
+                "ox_entries": [([None] * 9), False],
                 "quake_state": {},
                 "last_update_by": None
             }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
 import { Layout } from "./components/Layout";
 import HomePage from "./pages/HomePage";
@@ -6,6 +6,7 @@ import ContributorsPage from "./pages/ContributorsPage";
 import TierSessionCard from "./sessions/TierSessionCard";
 import ClockPage from "./pages/ClockPage";
 import WeatherPage from "./pages/WeatherPage";
+import OXSessionCard from "./sessions/OXSessionCard";
 
 const createLocalDiscordSdk = () => ({
   commands: {
@@ -27,6 +28,7 @@ const App: React.FC = () => {
 
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const clientId = useRef(crypto.randomUUID());
 
   useEffect(() => {
     const setup = async () => {
@@ -167,6 +169,17 @@ const App: React.FC = () => {
           auth={auth}
           ws={ws}
           discordSdk={discordSdk}
+          clientId={clientId.current}
+        />
+      )}
+
+      {activeTab === "ox" && (
+        <OXSessionCard
+          instanceId={instanceId}
+          auth={auth}
+          ws={ws}
+          discordSdk={discordSdk}
+          clientId={clientId.current}
         />
       )}
 

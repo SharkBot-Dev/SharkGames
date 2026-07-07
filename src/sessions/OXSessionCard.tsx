@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { WebcamIcon } from "lucide-react";
-import BrowserPage from "../pages/BrowserPage";
+import { Star } from "lucide-react";
+import OXPage from "../pages/OXPage";
 
-export default ({ discordSdk, instanceId, auth, ws }: any) => {
+export default ({ discordSdk, instanceId, auth, ws, clientId }: any) => {
   const [participants, setParticipants] = useState<any[]>([]);
 
   useEffect(() => {
@@ -36,13 +36,13 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
     <div className="flex min-h-screen flex-col bg-[#313338] text-[#DBDEE1]">
       <header className="flex flex-col gap-3 border-b border-black/20 bg-[#2B2D31] px-4 py-3 shadow-lg md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-[#5865F2] p-1.5">
-            <WebcamIcon size={20} className="text-white" />
+          <div className="rounded-lg bg-red-500 p-1.5">
+            <Star size={20} className="fill-current text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-bold leading-none text-white">共有ブラウザ</h1>
+            <h1 className="text-sm font-bold leading-none text-white">OXゲーム</h1>
             <p className="mt-1 text-[10px] text-[#B5BAC1]">
-              URLの画面を参加者全員に共有します
+              二人で遊べるマルバツゲームです。
             </p>
           </div>
         </div>
@@ -62,7 +62,6 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
                   className="h-4 w-4 rounded-full"
                   alt=""
                 />
-                <span className="font-medium">{p.username}</span>
               </div>
             ))
           ) : (
@@ -72,14 +71,21 @@ export default ({ discordSdk, instanceId, auth, ws }: any) => {
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#2b2d31] p-4 font-sans text-white md:p-8">
-        <BrowserPage
-          sessionId={instanceId}
-          ws={ws}
-          userOAuthToken={auth.access_token}
-          currentUserId={auth.user.id}
-          currentUsername={auth.user.username}
-          currentUserIcon={`https://cdn.discordapp.com/avatars/${auth.user.id}/${auth.user.avatar}.png`}
-        />
+        {participants.length > 0 ? (
+          <OXPage
+            sessionId={instanceId}
+            discordSdk={discordSdk}
+            ws={ws}
+            userOAuthToken={auth.access_token}
+            currentUserId={auth.user.id}
+            currentUsername={auth.user.username}
+            currentUserIcon={`https://cdn.discordapp.com/avatars/${auth.user.id}/${auth.user.avatar}.png`}
+            clientId={clientId}
+            participants={participants} 
+          />
+        ) : (
+          <h3 className="text-xl font-bold text-white text-center">読み込み中...</h3>
+        )}
       </div>
     </div>
   );

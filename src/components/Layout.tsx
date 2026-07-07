@@ -1,13 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import {
+  CircuitBoard,
   Clock,
-  Earth,
   Home,
   Menu,
   Star,
   Sun,
   Users,
-  WebcamIcon,
   X,
 } from "lucide-react";
 
@@ -30,6 +29,9 @@ const navGroups = [
   ],
   [
     { icon: Star, label: "Tier表", shortLabel: "Tier", id: "tier" },
+  ],
+  [
+    { icon: CircuitBoard, label: "OXゲーム", shortLabel: "OXゲーム", id: "ox" },
   ],
   [
     { icon: Users, label: "貢献者", shortLabel: "貢献者", id: "contributors" },
